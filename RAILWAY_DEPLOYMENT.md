@@ -196,3 +196,4 @@ The `/health` endpoint provides:
 4. **Scale**: Configure auto-scaling if needed
 
 Your SSE MCP server is now ready for production deployment on Railway! 🎉
+
