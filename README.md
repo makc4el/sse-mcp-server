@@ -6,10 +6,10 @@ This demonstrates a working pattern for SSE-based MCP servers and standalone MCP
 
 ## Usage
 
-**Note**: Make sure to supply `ANTHROPIC_API_KEY` in `.env` or as an environment variable.
+**Note**: Make sure to supply `OPENAI_API_KEY` in `.env` or as an environment variable.
 
 ```
-uv run weather.py
+uv run server.py
 
 uv run client.py http://0.0.0.0:8080/sse
 ```
@@ -48,12 +48,12 @@ npx -y @smithery/cli install @sidharthrajaram/mcp-sse --client claude
 
 ### Server
 
-`weather.py` is a SSE-based MCP server that presents some tools based on the National Weather Service APIs. Adapted from the MCP docs' [example STDIO server implementation.](https://modelcontextprotocol.io/quickstart/server)
+`server.py` is a SSE-based MCP server that presents some tools based on the National Weather Service APIs. Adapted from the MCP docs' [example STDIO server implementation.](https://modelcontextprotocol.io/quickstart/server)
 
 By default, server runs on 0.0.0.0:8080, but is configurable with command line arguments like:
 
 ```
-uv run weather.py --host <your host> --port <your port>
+uv run server.py --host <your host> --port <your port>
 ```
 
 ### Client

@@ -14,12 +14,12 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-edi
 # Copy the rest of the application files
 COPY . .
 
-# Set environment variable for ANTHROPIC_API_KEY
+# Set environment variable for OPENAI_API_KEY
 # This can be overridden at runtime
-ENV ANTHROPIC_API_KEY=your_api_key_here
+ENV OPENAI_API_KEY=your_api_key_here
 
 # Expose the port that the server will run on
 EXPOSE 8080
 
 # Default command to run the server
-CMD ["uv", "run", "weather.py"]
+CMD ["uv", "run", "server.py"]

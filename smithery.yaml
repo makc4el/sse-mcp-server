@@ -14,4 +14,4 @@ startCommand:
   commandFunction:
     # A function that produces the CLI command to start the MCP on stdio.
     |-
-    (config) => ({command: 'uv', args: ['run', 'weather.py'], env: {ANTHROPIC_API_KEY: config.anthropicApiKey}})
+    (config) => ({command: 'uv', args: ['run', 'server.py'], env: {OPENAI_API_KEY: config.anthropicApiKey}})

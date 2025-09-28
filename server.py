@@ -5,6 +5,7 @@ from starlette.applications import Starlette
 from mcp.server.sse import SseServerTransport
 from starlette.requests import Request
 from starlette.routing import Mount, Route
+from starlette.responses import JSONResponse
 from mcp.server import Server
 import uvicorn
 
@@ -100,6 +101,11 @@ Forecast: {period['detailedForecast']}
     return "\n---\n".join(forecasts)
 
 
+async def health_check(request: Request) -> JSONResponse:
+    """Health check endpoint for Railway monitoring."""
+    return JSONResponse({"status": "healthy", "service": "mcp-weather-server"})
+
+
 def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlette:
     """Create a Starlette application that can server the provied mcp server with SSE."""
     sse = SseServerTransport("/messages/")
@@ -119,6 +125,7 @@ def create_starlette_app(mcp_server: Server, *, debug: bool = False) -> Starlett
     return Starlette(
         debug=debug,
         routes=[
+            Route("/health", endpoint=health_check),
             Route("/sse", endpoint=handle_sse),
             Mount("/messages/", app=sse.handle_post_message),
         ],
@@ -129,10 +136,11 @@ if __name__ == "__main__":
     mcp_server = mcp._mcp_server  # noqa: WPS437
 
     import argparse
+    import os
     
     parser = argparse.ArgumentParser(description='Run MCP SSE-based server')
     parser.add_argument('--host', default='0.0.0.0', help='Host to bind to')
-    parser.add_argument('--port', type=int, default=8080, help='Port to listen on')
+    parser.add_argument('--port', type=int, default=int(os.environ.get('PORT', 8080)), help='Port to listen on')
     args = parser.parse_args()
 
     # Bind SSE request handling to MCP server
