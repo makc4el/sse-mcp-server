@@ -56,12 +56,6 @@ By default, server runs on 0.0.0.0:8080, but is configurable with command line a
 uv run server.py --host <your host> --port <your port>
 ```
 
-### Client
-
-`client.py` is a MCP Client that connects to and uses tools from the SSE-based MCP server. Adapted from the MCP docs' [example STDIO client implementation.](https://modelcontextprotocol.io/quickstart/client)
-
-By default, client connects to SSE endpoint provided in the command line argument like:
-
 ```
 uv run client.py http://0.0.0.0:8080/sse
 ```

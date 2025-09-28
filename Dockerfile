@@ -14,9 +14,7 @@ RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-edi
 # Copy the rest of the application files
 COPY . .
 
-# Set environment variable for OPENAI_API_KEY
-# This can be overridden at runtime
-ENV OPENAI_API_KEY=your_api_key_here
+# No environment variables needed for this server-only deployment
 
 # Expose the port that the server will run on
 EXPOSE 8080
