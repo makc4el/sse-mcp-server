@@ -1,332 +1,67 @@
-# SSE MCP Server
+# SSE-based Server and Client for [MCP](https://modelcontextprotocol.io/introduction)
 
-A Model Context Protocol (MCP) server with Server-Sent Events support following the official MCP specification for HTTP with SSE transport. Built in Python using FastAPI, this server provides testing tools for mathematical operations and is fully deployable on Railway platform.
+[![smithery badge](https://smithery.ai/badge/@sidharthrajaram/mcp-sse)](https://smithery.ai/server/@sidharthrajaram/mcp-sse)
 
-## Features
+This demonstrates a working pattern for SSE-based MCP servers and standalone MCP clients that use tools from them. Based on an original discussion [here](https://github.com/modelcontextprotocol/python-sdk/issues/145).
 
-- **MCP Protocol Compliance**: Implements MCP 2024-11-05 specification for HTTP with SSE transport
-- **Proper SSE Flow**: Follows the official MCP SSE lifecycle with endpoint events
-- **Session Management**: Supports multiple simultaneous SSE connections
-- **Real-time Notifications**: Server-sent logging messages during tool execution
-- **Testing Tools**: Built-in mathematical operation tools
-- **Railway Ready**: Configured for easy deployment on Railway platform
+## Usage
 
-## Available Tools
+**Note**: Make sure to supply `ANTHROPIC_API_KEY` in `.env` or as an environment variable.
 
-1. **add_numbers**: Calculate the sum of two numbers
-2. **find_max**: Find the larger of two numbers
+```
+uv run weather.py
 
-## API Endpoints
-
-Following the [MCP specification](https://levelup.gitconnected.com/mcp-server-and-client-with-sse-the-new-streamable-http-d860850d9d9d):
-
-- `GET /` - Server information and available endpoints
-- `GET /health` - Health check endpoint
-- `GET /connect` - **SSE connection endpoint** (establishes connection and sends endpoint event)
-- `POST /messages` - **Message endpoint** (handles MCP JSON-RPC messages with sessionId)
-- `GET /sse` - Legacy endpoint (provides guidance to proper MCP flow)
-
-## MCP SSE Flow
-
-The server implements the official MCP SSE lifecycle:
-
-1. **Connection**: Client sends `GET /connect` to establish SSE connection
-2. **Endpoint Event**: Server responds with endpoint event containing relative URI for messages
-3. **Messaging**: Client sends JSON-RPC messages to the URI from the endpoint event
-4. **Notifications**: Server can send real-time notifications via the SSE stream
-
-## Installation
-
-1. Clone the repository:
-```bash
-git clone <repository-url>
-cd sse-mcp-server
+uv run client.py http://0.0.0.0:8080/sse
 ```
 
-2. Install dependencies:
-```bash
-pip install -r requirements.txt
+```
+Initialized SSE client...
+Listing tools...
+
+Connected to server with tools: ['get_alerts', 'get_forecast']
+
+MCP Client Started!
+Type your queries or 'quit' to exit.
+
+Query: whats the weather like in Spokane?
+
+I can help you check the weather forecast for Spokane, Washington. I'll use the get_forecast function, but I'll need to use Spokane's latitude and longitude coordinates.
+
+Spokane, WA is located at approximately 47.6587° N, 117.4260° W.
+[Calling tool get_forecast with args {'latitude': 47.6587, 'longitude': -117.426}]
+Based on the current forecast for Spokane:
+
+Right now it's sunny and cold with a temperature of 37°F and ...
 ```
 
-3. Run the server:
-```bash
-python main.py
-```
+## Why?
 
-The server will start on `http://localhost:8000` by default.
+This means the MCP server can now be some running process that agents (clients) connect to, use, and disconnect from whenever and wherever they want. In other words, an SSE-based server and clients can be decoupled processes (potentially even, on decoupled nodes). This is different and better fits "cloud-native" use-cases compared to the STDIO-based pattern where the client itself spawns the server as a subprocess.
 
-## Usage Examples
+### Installing via Smithery
 
-### MCP SSE Client Flow
-
-```python
-import httpx
-import json
-from urllib.parse import urlparse, parse_qs
-
-# 1. Establish SSE connection
-async with httpx.AsyncClient() as client:
-    async with client.stream("GET", "http://localhost:8000/connect") as response:
-        async for line in response.aiter_lines():
-            if line.startswith("data: "):
-                event = json.loads(line[6:])
-                if event.get("method") == "endpoint":
-                    message_endpoint = f"http://localhost:8000{event['params']['uri']}"
-                    break
-
-# 2. Send MCP messages
-message = {
-    "jsonrpc": "2.0",
-    "id": "1",
-    "method": "tools/call",
-    "params": {
-        "name": "add_numbers",
-        "arguments": {"a": 15, "b": 25}
-    }
-}
-response = await client.post(message_endpoint, json=message)
-```
-
-### JavaScript SSE Client
-
-```javascript
-// Establish SSE connection
-const eventSource = new EventSource('http://localhost:8000/connect');
-let messageEndpoint = null;
-
-eventSource.onmessage = function(event) {
-  const data = JSON.parse(event.data);
-  
-  if (data.method === 'endpoint') {
-    messageEndpoint = `http://localhost:8000${data.params.uri}`;
-    console.log('Message endpoint:', messageEndpoint);
-  } else if (data.method?.startsWith('notifications/')) {
-    console.log('Notification:', data);
-  }
-};
-
-// Send messages after getting endpoint
-async function callTool() {
-  const response = await fetch(messageEndpoint, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      jsonrpc: "2.0",
-      id: "1", 
-      method: "tools/call",
-      params: { name: "add_numbers", arguments: {a: 15, b: 25} }
-    })
-  });
-  return response.json();
-}
-```
-
-## Testing
-
-### Manual Testing
-
-Run the included test client to verify MCP SSE compliance:
+To install SSE-based Server and Client for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@sidharthrajaram/mcp-sse):
 
 ```bash
-python test_client.py
+npx -y @smithery/cli install @sidharthrajaram/mcp-sse --client claude
 ```
 
-The test client will:
-1. ✅ Verify server health
-2. 🔗 Establish proper SSE connection via `/connect`
-3. 📡 Receive endpoint event with message URI
-4. 🔧 Initialize MCP connection
-5. 📋 List available tools
-6. ➕ Test `add_numbers` tool with real-time notifications
-7. 🔢 Test `find_max` tool with real-time notifications
+### Server
 
-### Automated Testing
+`weather.py` is a SSE-based MCP server that presents some tools based on the National Weather Service APIs. Adapted from the MCP docs' [example STDIO server implementation.](https://modelcontextprotocol.io/quickstart/server)
 
-Install test dependencies:
-```bash
-pip install -r test_requirements.txt
-```
-
-Run all tests:
-```bash
-python run_tests.py
-```
-
-Run specific test types:
-```bash
-# Unit tests only
-python run_tests.py unit
-
-# Integration tests only
-python run_tests.py integration
-
-# Tests with coverage report
-python run_tests.py coverage
-```
-
-Or use pytest directly:
-```bash
-# All tests with coverage
-pytest -v --cov=main test_unit.py test_integration.py
-
-# Unit tests only
-pytest -v test_unit.py
-
-# Integration tests only
-pytest -v test_integration.py
-```
-
-### Load Testing
-
-Test server performance under load:
-
-```bash
-# Light load (5 concurrent clients)
-python test_load.py light
-
-# Medium load (20 concurrent clients)
-python test_load.py medium
-
-# Heavy load (50 concurrent clients)
-python test_load.py heavy
-
-# Stress test (increasing load)
-python test_load.py stress
-```
-
-### Test Coverage
-
-The test suite includes:
-
-- **Unit Tests** (`test_unit.py`):
-  - MCP message handlers
-  - Tool functions
-  - SSE helper functions
-  - Tool definitions validation
-  
-- **Integration Tests** (`test_integration.py`):
-  - HTTP endpoints
-  - SSE connection flow
-  - Complete MCP protocol flow
-  - Session management
-  - Error handling
-  - Concurrent connections
-
-- **Load Tests** (`test_load.py`):
-  - Concurrent client simulation
-  - Performance metrics
-  - Stress testing
-  - RPS (Requests Per Second) measurement
-
-Expected output shows proper MCP SSE flow with session management and real-time notifications.
-
-## Railway Deployment
-
-This server is configured for deployment on Railway platform with the following files:
-
-- `Procfile` - Defines the web process
-- `runtime.txt` - Specifies Python version
-- `railway.json` - Railway-specific configuration
-
-### Deploy to Railway
-
-1. **Via Railway CLI:**
-```bash
-npm install -g @railway/cli
-railway login
-railway init
-railway deploy
-```
-
-2. **Via GitHub Integration:**
-   - Connect your GitHub repository to Railway
-   - Railway will automatically detect the configuration
-   - Deploy with one click
-
-3. **Environment Variables:**
-   - `PORT` - Will be automatically set by Railway
-   - `HOST` - Set to `0.0.0.0` (default)
-
-### Railway Configuration
-
-The server automatically detects Railway environment:
-- Uses `PORT` environment variable provided by Railway
-- Binds to `0.0.0.0` for external access
-- Includes health check endpoint at `/health`
-- Configured for automatic restarts on failure
-
-## Project Structure
+By default, server runs on 0.0.0.0:8080, but is configurable with command line arguments like:
 
 ```
-sse-mcp-server/
-├── main.py              # Main server application
-├── requirements.txt     # Python dependencies
-├── test_requirements.txt # Testing dependencies
-├── Procfile            # Railway process definition
-├── runtime.txt         # Python runtime version
-├── railway.json        # Railway deployment config
-├── pytest.ini          # Pytest configuration
-├── test_client.py      # Manual test client
-├── test_unit.py        # Unit tests
-├── test_integration.py # Integration tests
-├── test_load.py        # Load/stress tests
-├── run_tests.py        # Test runner script
-├── .gitignore          # Git ignore patterns
-└── README.md           # This file
+uv run weather.py --host <your host> --port <your port>
 ```
 
-## Development
+### Client
 
-### Adding New Tools
+`client.py` is a MCP Client that connects to and uses tools from the SSE-based MCP server. Adapted from the MCP docs' [example STDIO client implementation.](https://modelcontextprotocol.io/quickstart/client)
 
-To add new tools, extend the `TOOLS` list in `main.py`:
+By default, client connects to SSE endpoint provided in the command line argument like:
 
-```python
-TOOLS.append(Tool(
-    name="your_tool_name",
-    description="Tool description",
-    inputSchema={
-        "type": "object",
-        "properties": {
-            "param1": {"type": "string", "description": "Parameter description"}
-        },
-        "required": ["param1"]
-    }
-))
 ```
-
-Then implement the tool function and add it to the `handle_call_tool` function.
-
-### Environment Variables
-
-- `PORT` - Server port (default: 8000)
-- `HOST` - Server host (default: 0.0.0.0)
-
-## Dependencies
-
-- **FastAPI**: Web framework for building APIs
-- **Uvicorn**: ASGI server implementation
-- **Pydantic**: Data validation using Python type annotations
-- **MCP**: Model Context Protocol implementation
-- **httpx**: HTTP client for testing
-
-## License
-
-This project is open source and available under the MIT License.
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
-
-## Support
-
-For issues and questions:
-- Check the Railway deployment logs if deploying
-- Ensure all dependencies are installed correctly
-- Test locally before deploying
-- Use the included test client to validate functionality
-
+uv run client.py http://0.0.0.0:8080/sse
+```
